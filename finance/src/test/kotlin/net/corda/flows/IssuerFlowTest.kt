@@ -7,6 +7,7 @@ import net.corda.core.contracts.DOLLARS
 import net.corda.core.contracts.currency
 import net.corda.core.flows.FlowException
 import net.corda.core.flows.FlowStateMachine
+import net.corda.core.flows.TxKeyFlow
 import net.corda.core.getOrThrow
 import net.corda.core.identity.Party
 import net.corda.core.map
@@ -39,6 +40,12 @@ class IssuerFlowTest {
         notaryNode = mockNet.createNotaryNode(null, DUMMY_NOTARY.name)
         bankOfCordaNode = mockNet.createPartyNode(notaryNode.info.address, BOC.name)
         bankClientNode = mockNet.createPartyNode(notaryNode.info.address, MEGA_CORP.name)
+        val nodes = listOf(notaryNode, bankOfCordaNode, bankClientNode)
+
+        nodes.forEach { node ->
+            nodes.map { it.info.legalIdentityAndCert }.forEach(node.services.identityService::registerIdentity)
+            node.registerInitiatedFlow(TxKeyFlow.Provider::class.java)
+        }
     }
 
     @After
