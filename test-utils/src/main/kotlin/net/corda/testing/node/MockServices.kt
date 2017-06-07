@@ -71,7 +71,6 @@ open class MockServices(val key: KeyPair = generateKeyPair()) : ServiceHub {
 
     fun makeVaultService(dataSourceProps: Properties, hibernateConfig: HibernateConfiguration = HibernateConfiguration(NodeSchemaService())): VaultService {
         val vaultService = NodeVaultService(this, dataSourceProps)
-        // Vault cash spending requires access to contract_cash_states and their updates
         HibernateObserver(vaultService.rawUpdates, hibernateConfig)
         return vaultService
     }

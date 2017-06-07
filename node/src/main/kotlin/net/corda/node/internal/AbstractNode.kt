@@ -30,6 +30,7 @@ import net.corda.node.services.api.*
 import net.corda.node.services.config.FullNodeConfiguration
 import net.corda.node.services.config.NodeConfiguration
 import net.corda.node.services.config.configureWithDevSSLCertificate
+import net.corda.node.services.database.HibernateConfiguration
 import net.corda.node.services.events.NodeSchedulerService
 import net.corda.node.services.events.ScheduledActivityObserver
 import net.corda.node.services.identity.InMemoryIdentityService
@@ -49,8 +50,8 @@ import net.corda.node.services.statemachine.StateMachineManager
 import net.corda.node.services.statemachine.flowVersion
 import net.corda.node.services.transactions.*
 import net.corda.node.services.vault.CashBalanceAsMetricsObserver
+import net.corda.node.services.vault.HibernateVaultQueryImpl
 import net.corda.node.services.vault.NodeVaultService
-import net.corda.node.services.vault.RequeryVaultQueryServiceImpl
 import net.corda.node.services.vault.VaultSoftLockManager
 import net.corda.node.utilities.AddOrRemove.ADD
 import net.corda.node.utilities.AffinityExecutor
@@ -77,7 +78,6 @@ import java.util.concurrent.TimeUnit.SECONDS
 import kotlin.collections.ArrayList
 import kotlin.reflect.KClass
 import net.corda.core.crypto.generateKeyPair as cryptoGenerateKeyPair
-import net.corda.node.services.database.HibernateConfiguration
 
 /**
  * A base node implementation that can be customised either for production (with real implementations that do real
@@ -299,7 +299,7 @@ abstract class AbstractNode(open val configuration: NodeConfiguration,
         net = makeMessagingService()
         schemas = makeSchemaService()
         vault = makeVaultService(configuration.dataSourceProperties)
-        vaultQuery = makeVaultQueryService(configuration.dataSourceProperties)
+        vaultQuery = makeVaultQueryService(schemas)
         txVerifierService = makeTransactionVerifierService()
         auditService = DummyAuditService()
 
@@ -553,9 +553,9 @@ abstract class AbstractNode(open val configuration: NodeConfiguration,
     // TODO: sort out ordering of open & protected modifiers of functions in this class.
     protected open fun makeVaultService(dataSourceProperties: Properties): VaultService = NodeVaultService(services, dataSourceProperties)
 
-    protected open fun makeVaultQueryService(dataSourceProperties: Properties): VaultQueryService = RequeryVaultQueryServiceImpl(dataSourceProperties)
+    protected open fun makeVaultQueryService(schemas: SchemaService): VaultQueryService = HibernateVaultQueryImpl(HibernateConfiguration(schemas))
 
-    protected open fun makeSchemaService(): SchemaService = NodeSchemaService()
+    protected open fun makeSchemaService(): SchemaService = NodeSchemaService(pluginRegistries.flatMap { it.requiredSchemas }.toSet())
 
     protected abstract fun makeTransactionVerifierService(): TransactionVerifierService
 
